@@ -1,5 +1,9 @@
 package com.github.dmn1k.liquicheck;
 
+import com.google.common.reflect.TypeToken;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import liquibase.change.Change;
@@ -14,32 +18,40 @@ public class ChangelogValidator {
         this.rules = rules;
     }
 
-    public ValidationResult validate(DatabaseChangeLog databaseChangeLog) {
-        ValidationResult.ValidationResultBuilder resultBuilder = ValidationResult.builder();
+    public Violations validate(DatabaseChangeLog databaseChangeLog) {
+        Violations violations = new Violations();
 
-        validate(databaseChangeLog, resultBuilder, () -> {
+        validate(databaseChangeLog, violations, () -> {
             for (ChangeSet changeSet : databaseChangeLog.getChangeSets()) {
-                validate(changeSet, resultBuilder, () -> {
+                validate(changeSet, violations, () -> {
                     for (Change change : changeSet.getChanges()) {
-                        validate(change, resultBuilder, () -> {
+                        validate(change, violations, () -> {
                         });
                     }
                 });
             }
         });
         
-        return resultBuilder.build();
+        return violations;
     }
 
-    private void validate(Object element, ValidationResult.ValidationResultBuilder resultBuilder, Runnable body) {
-        ChangeLogElementValidation<?> validation = new ChangeLogElementValidation(element);
+    private void validate(Object element, Violations violations, Runnable body) {
         List<LiquicheckRule> relevantRules = this.rules.stream()
-                .filter(r -> r.getElementType().isAssignableFrom(element.getClass()))
+                .filter(r -> getGenericTypeArgument(r).isAssignableFrom(element.getClass()))
                 .collect(Collectors.toList());
         
-        relevantRules.forEach(r -> r.onElementStart(validation));
+        relevantRules.forEach(r -> r.onElementStart(element, violations));
         body.run();
-        relevantRules.forEach(r -> r.onElementEnd(validation));
-        resultBuilder.individualResults(validation.getValidationRuleResults());
+        relevantRules.forEach(r -> r.onElementEnd(element, violations));
+    }
+    
+    private static Class<?> getGenericTypeArgument(LiquicheckRule<?> rule){
+        List<Type> genericInterfaces = Arrays.asList(rule.getClass().getGenericInterfaces());
+        return genericInterfaces.stream()
+                .map(i -> (ParameterizedType) i)
+                .filter(t -> ((Class<?>) t.getRawType()).equals(LiquicheckRule.class))
+                .map(t -> (Class<?>) t.getActualTypeArguments()[0])
+                .findFirst()
+                .get();
     }
 }

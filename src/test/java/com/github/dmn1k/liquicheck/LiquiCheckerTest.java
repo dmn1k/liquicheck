@@ -8,22 +8,18 @@ public class LiquiCheckerTest {
     @Test
     public void testMethod() {
         LiquiChecker liquiChecker = new LiquiChecker();
-        liquiChecker.check("changelogs/test.xml", new ClassLoaderResourceAccessor(), new TestRule());
+        liquiChecker.check("changelogs/test.xml", new ClassLoaderResourceAccessor(), RuleSet.of(new TestRule()));
     }
     
-    class TestRule extends LiquicheckRule<CreateTableChange> {
-
-        public TestRule() {
-            super(CreateTableChange.class);
-        }
+    class TestRule implements LiquicheckRule<CreateTableChange> {
 
         @Override
-        public void onElementStart(ChangeLogElementValidation<CreateTableChange> validation) {
+        public void onElementStart(CreateTableChange element, Violations violations) {
             System.out.println("EVENT CAPTURED start");
         }
 
         @Override
-        public void onElementEnd(ChangeLogElementValidation<CreateTableChange> validation) {
+        public void onElementEnd(CreateTableChange element, Violations violations) {
             System.out.println("EVENT CAPTURED end");
         }
         

@@ -5,23 +5,22 @@ import javax.enterprise.inject.se.SeContainerInitializer;
 import liquibase.Liquibase;
 import liquibase.changelog.DatabaseChangeLog;
 import liquibase.database.Database;
-import liquibase.exception.LiquibaseException;
 import liquibase.resource.ResourceAccessor;
+import lombok.SneakyThrows;
 
 public class LiquiChecker {
 
-    public void check(String changelogFile, ResourceAccessor resourceAccessor, Class<?>... rules) {
+    @SneakyThrows
+    public ValidationResult check(String changelogFile, ResourceAccessor resourceAccessor, Class<?>... rules) {
         try (SeContainer cdiContainer = SeContainerInitializer.newInstance()
                 .disableDiscovery()
-                .addBeanClasses(ChangelogParser.class, EventDispatcher.class)
+                .addBeanClasses(ChangelogValidator.class, EventDispatcher.class)
                 .addBeanClasses(rules)
                 .initialize()) {
-            ChangelogParser parser = cdiContainer.select(ChangelogParser.class).get();
+            ChangelogValidator validator = cdiContainer.select(ChangelogValidator.class).get();
             Liquibase liquibase = new Liquibase(changelogFile, resourceAccessor, (Database) null);
             DatabaseChangeLog databaseChangeLog = liquibase.getDatabaseChangeLog();
-            parser.parse(databaseChangeLog);
-        } catch (LiquibaseException ex) {
-            throw new RuntimeException(ex);
+            return validator.validate(databaseChangeLog);
         }
     }
 }

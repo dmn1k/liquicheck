@@ -19,7 +19,7 @@ public class ChangelogValidator {
     }
 
     public Violations validate(DatabaseChangeLog databaseChangeLog) {
-        Violations violations = new Violations();
+        Violations violations = Violations.empty();
 
         validate(databaseChangeLog, violations, () -> {
             for (ChangeSet changeSet : databaseChangeLog.getChangeSets()) {
@@ -40,9 +40,9 @@ public class ChangelogValidator {
                 .filter(r -> getGenericTypeArgument(r).isAssignableFrom(element.getClass()))
                 .collect(Collectors.toList());
         
-        relevantRules.forEach(r -> r.onElementStart(element, violations));
+        relevantRules.forEach(r -> violations.merge(r.onElementStart(element)));
         body.run();
-        relevantRules.forEach(r -> r.onElementEnd(element, violations));
+        relevantRules.forEach(r -> violations.merge(r.onElementEnd(element)));
     }
     
     private static Class<?> getGenericTypeArgument(LiquicheckRule<?> rule){

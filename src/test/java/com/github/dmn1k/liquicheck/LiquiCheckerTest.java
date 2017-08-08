@@ -14,13 +14,15 @@ public class LiquiCheckerTest {
     class TestRule implements LiquicheckRule<CreateTableChange> {
 
         @Override
-        public void onElementStart(CreateTableChange element, Violations violations) {
+        public Violations onElementStart(CreateTableChange element) {
             System.out.println("EVENT CAPTURED start");
+            return Violations.empty();
         }
 
         @Override
-        public void onElementEnd(CreateTableChange element, Violations violations) {
+        public Violations onElementEnd(CreateTableChange element) {
             System.out.println("EVENT CAPTURED end");
+            return Violations.empty();
         }
         
     }
